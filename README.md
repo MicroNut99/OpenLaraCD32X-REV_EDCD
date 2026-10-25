@@ -1,3 +1,5 @@
+**Started from the Mega EverDrive PRO:** see [`README-EDCD.md`](README-EDCD.md) - `CART=ED EDCD=1 bash build.sh`.
+
 # Tomb Raider for Sega CD + 32X (OpenLara CD32X)
 
 Tomb Raider (1996) on the **Sega CD32X**, built on XProger's **OpenLara** 32X engine. **Version 1.7** (release notes: `docs/OPENLARA_CD32X_RELEASE.md`).
