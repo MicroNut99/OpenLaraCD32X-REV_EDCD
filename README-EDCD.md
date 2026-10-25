@@ -18,6 +18,11 @@ In this repository `build.sh` is in `OpenLaraCD32X/`, so from the repository's r
 (`BOOTCAMP=<folder>` is where the CD32X BootCamp is; without it, `../CD32X-BootCamp` next to the folder
 that holds `build.sh`.)
 
+The full line as used here (WSL, the toolchain tree on `S:`, the log kept next to the build):
+
+    cd /mnt/s/KoboPort/sega-toolchain-12.1/sega/OpenLaraCD32X-REV
+    CART=ED EDCD=1 BOOTCAMP=/mnt/s/KoboPort/sega-toolchain-12.1/sega/CD32X-BootCamp bash /mnt/s/KoboPort/sega-toolchain-12.1/sega/OpenLaraCD32X-REV/build.sh 2>&1 | tee /mnt/s/KoboPort/sega-toolchain-12.1/sega/OpenLaraCD32X-REV/build_edcd_log.txt
+
 It makes:
 
 | File | What to do with it |
