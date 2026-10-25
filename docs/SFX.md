@@ -1,0 +1,78 @@
+# SFX-1 / SFX-2: the missing sound effects
+
+**Why they were missing:** a level uses 70–94 different sounds (83–110 samples, 400–630 KB at 8 kHz).
+The Sega CD's PCM chip holds 64 KB, so each level's pack had room for about 20 samples, and only
+15–17 of the level's sounds could play at all: mostly Lara's own. On top of that, only the loudest
+effect of each frame was sent to the Sega CD.
+
+## SFX-2: every effect through the 32X PWM (the default)
+- **The samples:** `tools/sfx_bank.py` appends a bank to each level file and points the level header
+  at it.
+  - The header fields used are `soundData` / `soundOffsets`, which were unused before.
+  - The bank is loaded into the cart together with the level, by the normal level load.
+  - **No new command, no boot stack change**, and RESUME-1's cart check covers it.
+  - The bank holds **all** samples of the level, 8-bit, 8000 Hz. Where the cart room after the level is
+    smaller, the rate drops: Caves 6000, Tomb of Tihocan 7000, The Great Pyramid 6000. Nothing is cut
+    (the longest sample, 7.7 s, plays whole).
+  - The banks are 200–500 KB.
+- **The mixer:** `sfx.inc` runs on the slave SH2, in the DMA 1 interrupt.
+  - DMA 1 feeds the PWM from two blocks of up to 316 words (the movie player's buffers).
+  - Up to 8 sounds at once, with distance volume and pitch. The engine's modes work as on the GBA
+    (UNIQUE: no restart; REPLAY: restart).
+  - The PWM runs at 20–24 kHz: each mixed sample is written 3–4 times.
+  - The samples are read cache-through from the cart, so the renderer keeps its cache.
+  - The slave runs at interrupt level 3 instead of 13. Only the DMA interrupt (priority 4) gets
+    through: the slave's 32X interrupts stay off.
+- **Movies:** the mixer stops while a movie plays, and starts again afterwards.
+- **Volume:** `SFX_GAIN` in `sfx.inc`, out of 16. It is **2** (the same level as the first build),
+  tested right on the console on 21 Oct 2026. A try with 7 was too loud and is undone. To change it,
+  edit this one number (full volume of one sound: ±127 of the PWM's ±478 at 2).
+- **SFX-4:** a level with a bank no longer loads its Sega CD PCM pack (no command 53: one file open
+  and read less per level, and the CD music is not stopped for it). The PCM path stays for levels
+  without a bank.
+
+## SFX-1: the Sega CD PCM path (the fallback)
+- Up to **3 effects per frame**, the loudest first.
+  - The first goes with the pad request, the others with one more command 48 each. That command
+    already exists.
+- The packs (`tools/make_sfx_packs.py`):
+  - one variant per sound, and the other variants play it;
+  - 6 kHz, at most 0.75 s;
+  - about **26** sounds per level instead of 17 (the Sub-CPU driver allows 31).
+- This path is used when a level has no bank: `SFX=pcm bash build.sh`, or an older disc.
+
+## Measured in emulation
+| | Before | SFX-2 |
+|---|---|---|
+| Sounds that play, Lost Valley | 15 of 73 | all 73 |
+| Effects per frame | 1 | all, up to 8 at once |
+| Caves benchmark frame time (cart 10) | 46.7 ms | 46.7 ms (mixer about 3% of the slave) |
+| Lost Valley load from the CD | 31.9 s | 41.3 s (+29%, the 443 KB bank) |
+| Resume after power-off (RESUME-1) | ~3 s | ~3 s |
+
+Checked:
+- the pictures are bit-identical (Caves benchmark);
+- effects on the title ring, in Caves and in Lost Valley (gunshots, footsteps, jump, draw);
+- a movie with the mixer on, and the effects back after it;
+- the PCM fallback with the new packs.
+
+**On the console (21 Oct 2026):** good, volume right at `SFX_GAIN` 2.
+
+## Build
+`bash build.sh` (or `CART=16 bash build.sh`). The new step `==> sound banks` lists each level's
+rate and size. `SFX=pcm bash build.sh` builds without banks.
+
+## MUSIC-1: the Music switch in the options
+Options → Sound → Music now switches the CD audio off and on. Before, the switch was saved but did
+nothing in this port.
+- **Off:** what is playing stops, and no track starts.
+- **On:** the level's music starts again.
+- **This covers all CD audio**, including the cut-scenes' voices, which are CD tracks too.
+- Sound FX switches the effects, on both the PWM and the PCM path.
+
+## SETTINGS-1: the switches respond at once
+The Music and Sound FX switches did change the sound, but every change also saved the settings to the
+cart at once: 2048 + 1 commands to the Sega CD, the menu frozen for a moment, and the next presses
+were lost or counted twice, so the switches seemed not to work. Now a change only marks the
+settings; they are written once, when the inventory closes. The switch takes effect at once as
+before.
