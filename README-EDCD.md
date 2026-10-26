@@ -11,11 +11,11 @@ cartridge (the console's "mode 1") and is the disc's 16 MB RAM cart.  The CD32X 
 One command, from the folder that holds `build.sh`, with the same toolchain settings as a normal build
 (`ROOTDIR=` / `SEGA_TOOLCHAIN=`) and the CD32X BootCamp checked out next to it:
 
-    CART=ED EDCD=1 bash build.sh
+    CART=ED EDCD=1 EDCD_SAVE=1 bash build.sh
 
 In this repository `build.sh` is in `OpenLaraCD32X/`, so from the repository's root:
 
-    CART=ED EDCD=1 BOOTCAMP=../CD32X-BootCamp bash OpenLaraCD32X/build.sh
+    CART=ED EDCD=1 EDCD_SAVE=1 BOOTCAMP=../CD32X-BootCamp bash OpenLaraCD32X/build.sh
 
 (`BOOTCAMP=<folder>` is where the CD32X BootCamp is; without it, `../CD32X-BootCamp` next to the folder
 that holds `build.sh`.)
@@ -23,7 +23,7 @@ that holds `build.sh`.)
 The full line as used here (WSL, the toolchain tree on `S:`, the log kept next to the build):
 
     cd /mnt/s/KoboPort/sega-toolchain-12.1/sega/OpenLaraCD32X-REV
-    CART=ED EDCD=1 BOOTCAMP=/mnt/s/KoboPort/sega-toolchain-12.1/sega/CD32X-BootCamp bash /mnt/s/KoboPort/sega-toolchain-12.1/sega/OpenLaraCD32X-REV/build.sh 2>&1 | tee /mnt/s/KoboPort/sega-toolchain-12.1/sega/OpenLaraCD32X-REV/build_edcd_log.txt
+    CART=ED EDCD=1 EDCD_SAVE=1 BOOTCAMP=/mnt/s/KoboPort/sega-toolchain-12.1/sega/CD32X-BootCamp bash /mnt/s/KoboPort/sega-toolchain-12.1/sega/OpenLaraCD32X-REV/build.sh 2>&1 | tee /mnt/s/KoboPort/sega-toolchain-12.1/sega/OpenLaraCD32X-REV/build_edsave_log.txt
 
 It makes:
 
@@ -34,6 +34,14 @@ It makes:
 
 Then: the disc in the Sega CD, the EverDrive in the 32X, start `EDCD.32X` from the EverDrive menu
 (not "Run Mega-CD").  The disc also boots the normal way with a RAM cart.
+
+`EDCD_SAVE=1` (EDSAVE-1) keeps the settings and the 16 save slots in the EverDrive's bank 31 - its battery
+RAM, which the EverDrive OS writes to the SD card as `MEGA/gamedata/EDCD.32X/bram.srm` (256 KB).  Without
+it the saves go to the cart's PSRAM, which the EverDrive wipes every time its menu runs (measured with the
+BootCamp's `edsave/EDSAVE1.32X`, 25 Oct 2026): nothing survived a relaunch, which is why "saves did not
+work".  The game asks the Sub-CPU where the saves are (CMD 62) and reads them through it (CMD 62 + 57); the
+launcher's header declares save RAM, which is what makes the OS keep the file.  The same wipe takes the
+fast-load records: every launch loads from the CD.
 
 Other switches: `EDCD_X=1` CTRL0 with the EverDrive's X bit; `EDCD_W0=<bank>` the game in that EverDrive
 bank; `M1WORDS=1` word copies into the cart.  All off by default; none was needed on the console.
